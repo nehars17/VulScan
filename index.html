@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VulnScan — LLM Code Security Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div class="glow-orb"></div>
+
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🛡</div>
+        <div class="logo-text">Vuln<span>Scan</span></div>
+      </div>
+      <div class="badge">LLM-POWERED</div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="hero">
+    <h1>Find vulnerabilities<br/>before <em>attackers</em> do</h1>
+    <p>Paste code, upload a file, or point to a GitHub repo. Our LLM engine performs deep semantic analysis to detect OWASP Top 10 and beyond.</p>
+  </section>
+
+  <div class="input-panel" id="inputPanel">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('paste')" id="tab-paste"><span>⌨️</span> Paste Code</button>
+      <button class="tab" onclick="switchTab('file')" id="tab-file"><span>📄</span> Upload File</button>
+      <button class="tab" onclick="switchTab('github')" id="tab-github"><span>🐙</span> GitHub URL</button>
+    </div>
+
+    <div class="tab-pane active" id="pane-paste">
+      <div class="input-label">Language</div>
+      <select class="lang-select" id="langSelect" style="position:relative;top:unset;right:unset;margin-bottom:12px;">
+        <option value="auto">Auto-detect</option>
+        <option value="python">Python</option>
+        <option value="javascript">JavaScript</option>
+        <option value="java">Java</option>
+        <option value="php">PHP</option>
+        <option value="go">Go</option>
+        <option value="typescript">TypeScript</option>
+        <option value="rust">Rust</option>
+        <option value="c">C/C++</option>
+        <option value="ruby">Ruby</option>
+      </select>
+      <textarea id="codeInput" placeholder="// Paste your code here..."></textarea>
+    </div>
+
+    <div class="tab-pane" id="pane-file">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".py,.js,.ts,.java,.php,.go,.rb,.c,.cpp,.rs,.jsx,.tsx" onchange="handleFileSelect(event)"/>
+        <div class="upload-icon">📁</div>
+        <h3>Drop your file here</h3>
+        <p>or click to browse</p>
+        <div class="file-types">
+          <span class="file-chip">.py</span><span class="file-chip">.js</span><span class="file-chip">.ts</span>
+          <span class="file-chip">.java</span><span class="file-chip">.php</span><span class="file-chip">.go</span>
+          <span class="file-chip">.rb</span><span class="file-chip">.c/.cpp</span><span class="file-chip">.rs</span>
+        </div>
+        <div class="file-selected" id="selectedFileName"></div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-github">
+      <div class="github-wrap">
+        <div>
+          <div class="input-label">Repository or File URL</div>
+          <input type="text" id="githubUrl" placeholder="https://github.com/owner/repo/blob/main/app.py"/>
+        </div>
+        <div>
+          <div class="input-label">Scan scope</div>
+          <div class="github-options">
+            <div class="github-option selected" id="opt-single" onclick="selectGhOption('single')"><span>📄</span> Single file</div>
+            <div class="github-option" id="opt-multi" onclick="selectGhOption('multi')"><span>📂</span> Specific files</div>
+          </div>
+        </div>
+        <div id="multiFileNote" style="display:none;color:var(--muted);font-size:13px;">
+          💡 For multi-file scans, separate URLs with commas or newlines.
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 0 24px 24px;">
+      <div class="error-msg" id="errorMsg"></div>
+      <button class="scan-btn" id="scanBtn" onclick="runScan()"><span>🔍</span> Scan for Vulnerabilities</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loadingPanel">
+    <div class="scan-animation">
+      <div class="scan-ring"></div>
+      <div class="scan-ring"></div>
+      <div class="scan-center"></div>
+    </div>
+    <h3>Analysing your code…</h3>
+    <p>Running deep semantic analysis with LLM engine</p>
+    <div class="loading-steps">
+      <div class="loading-step"><div class="step-dot" id="step1dot"></div><span id="step1text">Parsing code structure</span></div>
+      <div class="loading-step"><div class="step-dot pending" id="step2dot"></div><span id="step2text" style="color:var(--muted)">Mapping OWASP Top 10 patterns</span></div>
+      <div class="loading-step"><div class="step-dot pending" id="step3dot"></div><span id="step3text" style="color:var(--muted)">Performing semantic analysis</span></div>
+      <div class="loading-step"><div class="step-dot pending" id="step4dot"></div><span id="step4text" style="color:var(--muted)">Generating fix suggestions</span></div>
+    </div>
+  </div>
+
+  <div class="results" id="resultsPanel">
+    <div class="results-header">
+      <div>
+        <div class="results-title">Scan Report</div>
+        <div class="results-meta" id="resultsMeta"></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="export-btn" onclick="exportJSON()">⬇ Export JSON</button>
+        <button class="rescan-btn" onclick="resetScan()">↩ New Scan</button>
+      </div>
+    </div>
+    <div class="summary-cards" id="summaryCards"></div>
+    <div class="vuln-list" id="vulnList"></div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="container">
+    VulnScan — LLM-Powered Security Analysis · Detects OWASP Top 10 + beyond · For educational &amp; research use
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
