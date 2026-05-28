@@ -1,56 +1,92 @@
-# 🛡️ VulnScan — LLM-Powered Code Security Analyzer
+# VulnScan — LLM-Powered Code Security Analyser
 
-VulnScan is a modern, web-based security tool that leverages Large Language Models (LLMs) to perform deep semantic analysis of source code. It detects potential vulnerabilities, including OWASP Top 10 issues, and provides actionable fix suggestions.
+VulnScan is a web-based SAST tool that uses large language models to perform semantic analysis of source code. Unlike pattern-matching scanners, it understands code logic and intent — catching vulnerability classes that regex-based tools miss.
 
-## ✨ Features
+Built as a solo project. Supports any programming language.
 
--   **Multi-Source Input**: Paste code directly, upload source files, or provide GitHub repository URLs.
--   **Deep Semantic Analysis**: Goes beyond pattern matching by using LLMs to understand code logic and intent.
--   **OWASP Mapping**: Automatically categorizes findings according to OWASP standards.
--   **Interactive Reports**: View detailed vulnerability descriptions, locations, and side-by-side "Vulnerable vs. Fixed" code comparisons.
--   **Exportable Results**: Download your scan report as a JSON file for further analysis.
+![VulnScan demo screenshot](docs/screenshot.png)
+<!-- Replace with an actual screenshot or GIF when available -->
 
-## 🚀 Getting Started
+---
+
+## What it does
+
+- Accepts code via direct paste, file upload, or individual GitHub file URLs
+- Analyses code semantically using Google Gemini, going beyond surface-level pattern matching
+- Maps findings to OWASP Top 10 categories with vulnerability descriptions and affected line references
+- Produces side-by-side "Vulnerable vs. Fixed" code comparisons for each finding
+- Exports full scan reports as JSON for further analysis or integration
+
+---
+
+## Getting started
 
 ### Prerequisites
 
--   **Node.js**: Version 18 or higher recommended.
--   **Gemini API Key**: A free API key from [Google AI Studio](https://aistudio.google.com/).
+- Node.js 18+
+- A free Gemini API key from [Google AI Studio](https://aistudio.google.com/)
 
 ### Installation
 
-1.  **Clone or download the project files.**
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-3.  **Configure Environment**:
-    Create a `.env` file in the root directory (one is provided as a template) and add your API key:
-    ```env
-    GEMINI_API_KEY=your_gemini_api_key_here
-    PORT=3000
-    ```
+```bash
+git clone https://github.com/nehars17/VulScan.git
+cd VulScan
+npm install
+```
 
-### Running the Application
+### Configuration
 
-1.  **Start the server**:
-    ```bash
-    node server.js
-    ```
-2.  **Access the web interface**:
-    Open [http://localhost:3000](http://localhost:3000) in your web browser.
+Create a `.env` file in the root directory:
 
-## 🛠️ Technology Stack
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+PORT=3000
+```
 
--   **Frontend**: Vanilla HTML5, CSS3 (with custom animations), and modern JavaScript.
--   **Animations**: Syne & JetBrains Mono typography with advanced CSS glow effects and micro-animations.
--   **Backend**: Node.js and Express.js.
--   **AI Engine**: Google Gemini API via the `@google/generative-ai` SDK.
+### Running
 
-## ⚠️ Disclaimer
+```bash
+node server.js
+```
 
-VulnScan is designed for **educational and research purposes only**. While it uses advanced AI, it should not be the sole method of security verification. Always pair automated scans with manual code review and professional security testing.
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 📋 License
+---
 
-ISC License. Feel free to use and modify for personal or educational projects.
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | HTML5, CSS3, Vanilla JavaScript |
+| Backend | Node.js, Express.js |
+| AI engine | Google Gemini API (`@google/generative-ai`) |
+
+---
+
+## Limitations
+
+- GitHub URL scanning supports individual files only, not full repositories
+- LLM-based analysis is non-deterministic — results may vary between scans of the same input
+- Not intended as a replacement for manual code review or professional penetration testing
+- Requires a Gemini API key to run (free tier available)
+
+---
+
+## Roadmap
+
+- [ ] Full GitHub repository scanning
+- [ ] Demo mode without API key requirement
+- [ ] Support for additional LLM backends
+- [ ] CI/CD integration via CLI
+
+---
+
+## Disclaimer
+
+VulnScan is built for educational and research purposes. Use it as one layer of a broader security review process, not as a standalone audit tool.
+
+---
+
+## License
+
+ISC License
