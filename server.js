@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai'); // Standard library name
 const dotenv = require('dotenv');
 const path = require('path');
@@ -20,6 +21,20 @@ app.use((req, res, next) => {
 
 app.use(cors());
 app.use(express.json());
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      message: 'Too many requests. Please wait a minute before trying again.'
+    }
+  }
+});
+
+app.use('/api', apiLimiter);
 app.use(express.static(path.join(__dirname)));
 
 app.use((err, req, res, next) => {
@@ -33,6 +48,51 @@ app.use((err, req, res, next) => {
 
 // Initialize Gemini with your API Key from .env
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// app.get('/api/models', async (req, res) => {
+//   try {
+//     if (!process.env.GEMINI_API_KEY) {
+//       return res.status(500).json({
+//         error: {
+//           message: 'GEMINI_API_KEY is missing. Add it to your .env file before querying models.'
+//         }
+//       });
+//     }
+
+//     const response = await fetch(
+//       `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`
+//     );
+
+//     const data = await response.json();
+
+//     if (!response.ok) {
+//       return res.status(response.status).json({
+//         error: {
+//           message: data?.error?.message || 'Failed to fetch available Gemini models.'
+//         }
+//       });
+//     }
+
+//     const models = (data.models || [])
+//       .filter((model) => (model.supportedGenerationMethods || []).includes('generateContent'))
+//       .map((model) => ({
+//         name: model.name?.replace('models/', ''),
+//         displayName: model.displayName,
+//         description: model.description,
+//         supportedGenerationMethods: model.supportedGenerationMethods || []
+//       }))
+//       .sort((a, b) => a.name.localeCompare(b.name));
+
+//     res.json({ models });
+//   } catch (error) {
+//     console.error('Error fetching Gemini models:', error);
+//     res.status(500).json({
+//       error: {
+//         message: error?.message || 'Internal Server Error'
+//       }
+//     });
+//   }
+// });
 
 app.post('/api/scan', async (req, res) => {
   try {
