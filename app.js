@@ -110,7 +110,7 @@ async function animateLoadingSteps() {
 function buildPrompt(code, lang) {
   const langHint = lang !== 'auto' ? ` The code is written in ${lang}.` : '';
   return `You are a senior application security engineer and penetration tester. Analyze the following code for security vulnerabilities.${langHint}
-
+ 
 Return ONLY a JSON object (no markdown, no backticks, no preamble) in this exact format:
 {
   "summary": "One sentence overview of what the code does and overall security posture",
@@ -130,65 +130,96 @@ Return ONLY a JSON object (no markdown, no backticks, no preamble) in this exact
     }
   ]
 }
-
+ 
 If no vulnerabilities are found, return an empty vulnerabilities array.
 Detect issues including but not limited to: SQL injection, XSS, command injection, path traversal,
 insecure deserialization, broken authentication, hardcoded credentials, SSRF, XXE, insecure direct
 object references, missing input validation, weak cryptography, race conditions, and misconfigurations.
-
+ 
 Code to analyze:
 \`\`\`
 ${code.slice(0, 12000)}
 \`\`\``;
 }
 
+function parseScanResponse(rawText) {
+ if (!rawText || !String(rawText).trim()) {
+   throw new Error('The AI model returned an empty response.');
+ }
+
+ let clean = String(rawText).trim();
+ clean = clean.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+
+ try {
+   return JSON.parse(clean);
+ } catch (e) {
+   const match = clean.match(/\{[\s\S]*\}/);
+   if (match) {
+     try {
+       return JSON.parse(match[0]);
+     } catch (innerErr) {
+       // fall through to a more helpful message below
+     }
+   }
+
+   const snippet = clean.replace(/\s+/g, ' ').slice(0, 180);
+   throw new Error(`The AI model returned a non-JSON response. Please check the API key and model configuration. Response preview: ${snippet}`);
+ }
+}
+
 // ── Main scan ───────────────────────────────────────────────────────────────
 async function runScan() {
-  hideError();
+ hideError();
 
-  let codeData;
-  try {
-    codeData = await getCodeToScan();
-  } catch (e) {
-    showError(e.message);
-    return;
-  }
+ let codeData;
+ try {
+   codeData = await getCodeToScan();
+ } catch (e) {
+   showError(e.message);
+   return;
+ }
 
-  // Switch to loading state
-  document.getElementById('inputPanel').style.display = 'none';
-  document.getElementById('loadingPanel').classList.add('active');
-  document.getElementById('resultsPanel').classList.remove('active');
-  document.getElementById('scanBtn').disabled = true;
+ // Switch to loading state
+ document.getElementById('inputPanel').style.display = 'none';
+ document.getElementById('loadingPanel').classList.add('active');
+ document.getElementById('resultsPanel').classList.remove('active');
+ document.getElementById('scanBtn').disabled = true;
 
-  animateLoadingSteps();
+ animateLoadingSteps();
 
-  const lang = document.getElementById('langSelect').value;
+ const lang = document.getElementById('langSelect').value;
 
-  try {
-    const response = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: buildPrompt(codeData.code, lang)
-      })
-    });
+ try {
+   const response = await fetch('/api/scan', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({
+       prompt: buildPrompt(codeData.code, lang)
+     })
+   });
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || 'API error');
+   const responseText = await response.text();
+   let payload;
 
-    const rawText = data.text || '';
-    const clean = rawText.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+   try {
+     payload = JSON.parse(responseText);
+   } catch (e) {
+     throw new Error('The scan service responded with a non-JSON payload. Please verify the API configuration.');
+   }
 
-    lastResults = { ...parsed, source: codeData.source, scannedAt: new Date().toISOString() };
-    renderResults(lastResults);
+   if (!response.ok) throw new Error(payload.error?.message || 'API error');
 
-  } catch (e) {
-    document.getElementById('inputPanel').style.display = 'block';
-    document.getElementById('loadingPanel').classList.remove('active');
-    document.getElementById('scanBtn').disabled = false;
-    showError('Scan failed: ' + e.message);
-  }
+   const parsed = parseScanResponse(payload.text);
+
+   lastResults = { ...parsed, source: codeData.source, scannedAt: new Date().toISOString() };
+   renderResults(lastResults);
+
+ } catch (e) {
+   document.getElementById('inputPanel').style.display = 'block';
+   document.getElementById('loadingPanel').classList.remove('active');
+   document.getElementById('scanBtn').disabled = false;
+   showError('Scan failed: ' + e.message);
+ }
 }
 
 // ── Render results ──────────────────────────────────────────────────────────
